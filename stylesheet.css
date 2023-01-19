@@ -42,3 +42,11 @@ main {
 iframe {
     background-color: white;
 }
+
+.iframe { 
+    padding-top: 30px;
+}
+
+ul {
+    font-weight: bold;
+}

@@ -1,0 +1,131 @@
+import re
+import mysql.connector
+import datetime
+import time
+import math
+from sensirion_shdlc_driver import ShdlcSerialPort, ShdlcConnection
+from sensirion_shdlc_sfa3x import Sfa3xShdlcDevice
+
+#-------------------------------------------------------------------------
+
+sensor_id = 'PiSensor005' # This is sensor specific (Edit this for each sensor)!!!!!!!!!!!!!!!!!!
+reading_time = datetime.datetime.now()
+
+mydb = mysql.connector.connect(
+  host="???",
+  user="???",
+  password="???",
+  database="???")
+
+mycursor = mydb.cursor()
+
+# This is the sensor info query
+mycursor.execute("""SELECT *
+                 FROM hr_ehs_sensors
+                 WHERE sensor_id = %s""", (sensor_id,))
+
+myresult = mycursor.fetchone()
+
+sensor_info = {} # Dictionary for sensor information
+sensor_info_keys = ['id', 'sensor_id', 'zone', 'zone_display', 'bldg', 'dept', 'scale_factor'] # List of keys for sensor_info dictionary
+for i in range(len(sensor_info_keys)):
+    sensor_info[sensor_info_keys[i]] = myresult[i] # Loops through sensor_info_keys and myresult and adds the key value pairs to the sensor_info dictionary
+
+# This is the chem reading query for more sensor information   
+mycursor.execute("""SELECT max(id), chemical, chem_reading_uom, temp_scale
+                 FROM hr_ehs_chem_readings
+                 WHERE sensor_id = %s""", (sensor_id,))
+
+my_result = mycursor.fetchone()
+
+chem_reading_keys = ['id', 'chemical', "chem_reading_uom", 'temp_scale'] # List of keys to add to the sensor_info dictionary
+for i in range(len(chem_reading_keys)):
+    sensor_info[chem_reading_keys[i]] = my_result[i] # Loops through chem_reading_keys and my_result and adds the key value pairs to the sensor_info dictionary
+
+#-------------------------------------------------------------------------
+
+usbdevice = '/dev/ttyUSB0'
+baudrate=115200
+
+with ShdlcSerialPort(port='/dev/ttyUSB0', baudrate=115200) as port:
+    device = Sfa3xShdlcDevice(ShdlcConnection(port), slave_address=0)
+
+    device.device_reset()
+
+    device.start_measurement()
+    print("Measurement started... ")
+    while True:
+        
+        time.sleep(1200.) # Sets time between readings at 20 minutes = 1200 seconds
+        hcho, humidity, temperature = device.read_measured_values()
+        
+        # use default formatting for printing output:
+        print("{}, {}, {}".format(hcho, humidity, temperature))
+        
+        reading_time = datetime.datetime.now()
+                
+        #format hcho reading for database recording
+        str_hcho = str(hcho)
+        lst_hcho = re.findall("\d+\.\d+", str_hcho)
+        float_hcho = float(lst_hcho[0])
+        calc_chem_reading = (float_hcho * sensor_info['scale_factor']) # Adjusts the formaldehyde levels by multiplying by the scale factor
+    
+        #format humidity reading for database recording
+        str_humidity = str(humidity)
+        lst_humidity = re.findall("\d+\.\d+", str_humidity)
+        float_humidity = float(lst_humidity[0])
+    
+        #format temperature reading for database recording
+        str_temperature = str(temperature)
+        lst_temperature = re.findall("\d+\.\d+", str_temperature)
+        float_temperature = float(lst_temperature[0])
+        
+        #format heat index reading for database recording
+        h_value = float_humidity
+        t_value = round(float_temperature*1.8)+32
+
+        disp_value = round((-42.379 + (2.04901523 * t_value)) + (10.14333127 * h_value)
+            + (-0.22475541 * (t_value * h_value)) + ((-6.83783 * pow(10, -3)) * pow(t_value, 2))
+            + ((-5.481717 * pow(10, -2)) * pow(h_value, 2)) + ((1.22874 * (pow(10, -3)) * pow(t_value, 2) * h_value)
+                + ((8.5282 * pow(10, -4)) * (t_value * pow(h_value, 2))
+                    + ((-1.99 * pow(10, -6)) * (pow(t_value, 2) * pow(h_value, 2))))))
+        if (h_value < 13 and t_value > 80 and t_value < 112):
+            x = ((13 - h_value)/4) * (math.sqrt(17-math.abs(t_value-95)/17))
+            hi_adj = disp_value - x
+        elif (h_value > 85 and t_value > 80 and t_value < 87):
+            y = ((h_value - 85)/10)*((87-t_value)/5)
+            hi_adj = disp_value + y
+        else:
+            hi_adj = disp_value
+        
+               
+        sql = """INSERT INTO
+            back_office.hr_ehs_chem_readings
+        (
+            sensor_id,
+            reading_time,
+            chem_reading,
+            humidity,
+            temperature,
+            heat_index,
+            calc_chem_reading,
+            zone,
+            zone_display,
+            bldg,
+            dept,
+            chemical,
+            chem_reading_uom,
+            scale_factor,
+            temp_scale
+        )
+            VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        
+        
+        val = (sensor_id, reading_time, float_hcho, float_humidity, float_temperature, hi_adj, calc_chem_reading, sensor_info['zone'],
+               sensor_info['zone_display'], sensor_info['bldg'], sensor_info['dept'], sensor_info['chemical'], sensor_info['chem_reading_uom'], 
+               sensor_info['scale_factor'], sensor_info['temp_scale'])
+        
+        mycursor.execute(sql, val)
+        mydb.commit()
+        
+

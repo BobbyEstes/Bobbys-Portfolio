@@ -1,0 +1,56 @@
+<?php 
+
+require_once $_SERVER['DOCUMENT_ROOT'] .'/includes/db_connect.inc.php';
+
+$zones= $_POST['zones'];
+
+$return_array = array();
+
+$zones_list = "";
+
+foreach ($zones as $zone) {
+    $zones_list .= "'$zone',";
+}
+
+$zones_list = substr($zones_list, 0, -1);
+
+$sql = "select 
+            *
+        from
+            (SELECT
+                max(id) as max_id,
+                zone
+            FROM
+                back_office.hr_ehs_chem_readings
+            where
+                zone in ($zones_list)
+            group by 
+                zone) as max
+                    join
+                back_office.hr_ehs_chem_readings on max.max_id = hr_ehs_chem_readings.id;   ";
+
+
+$result = mysqli_query($connection,$sql) or die(mysqli_error());
+
+while ($row = mysqli_fetch_array($result)){
+
+    $return_array[] = array(
+        "zone"              => $row["zone"],
+        "zone_display"      => $row["zone_display"],
+        "bldg"              => $row["bldg"],
+        "dept"              => $row["dept"],
+        "chemical"          => $row["chemical"],
+        "reading_time"      => $row["reading_time"],
+        "chem_reading"      => $row["chem_reading"],
+        "humidity"          => $row["humidity"],
+        "temperature"       => $row["temperature"],
+        "chem_reading_uom"  => $row["chem_reading_uom"],
+        "temp_scale"        => $row["temp_scale"]
+
+    );
+}
+
+echo json_encode($return_array);
+
+
+?>

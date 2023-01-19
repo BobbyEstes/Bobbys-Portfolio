@@ -1,0 +1,156 @@
+##### Imports #####
+import RPi.GPIO as GPIO
+from time import sleep
+import time
+import mysql.connector
+
+##### Set Lock Name #####
+lock_name = 'door_lock1'
+
+
+##### Initialize Hardware #####
+lock_pin = 18
+
+red_pin = 14
+green_pin = 15
+
+
+GPIO.setmode(GPIO.BCM)
+
+GPIO.setup(lock_pin, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(red_pin, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(green_pin, GPIO.OUT, initial=GPIO.LOW)
+
+time.sleep(3)
+
+##### Initialize Database Connection #####
+connection = mysql.connector.connect(host='???',
+                                     database='???',
+                                     user='???',
+                                     password='???')
+
+sql = connection.cursor(buffered=True)
+
+cursor = connection.cursor()
+
+
+###### Define Functions #####
+# Send unlock signal
+def unlock():
+    
+    # Activate door strike & turn off red light
+    GPIO.output(lock_pin, GPIO.LOW)
+    GPIO.output(red_pin, GPIO.HIGH)
+    
+    # Flash green light
+    GPIO.output(green_pin, GPIO.HIGH)
+    sleep(.5)
+    GPIO.output(green_pin, GPIO.LOW)
+    sleep(.5)
+    GPIO.output(green_pin, GPIO.HIGH)
+    sleep(.5)
+    GPIO.output(green_pin, GPIO.LOW)
+    sleep(.5)
+    GPIO.output(green_pin, GPIO.HIGH)
+    sleep(.5)
+    GPIO.output(green_pin, GPIO.LOW)
+    sleep(.5)
+    GPIO.output(green_pin, GPIO.HIGH)
+    
+    # Deactivate door strike & turn on both lights
+    GPIO.output(lock_pin, GPIO.HIGH)
+    GPIO.output(red_pin, GPIO.LOW)
+    GPIO.output(green_pin, GPIO.LOW)
+   
+def denial():
+    
+    # Deactivate door strike & turn off green light
+    GPIO.output(lock_pin, GPIO.HIGH)
+    GPIO.output(green_pin, GPIO.HIGH)
+    
+    # Flash red light
+    GPIO.output(red_pin, GPIO.HIGH)
+    sleep(.25)
+    GPIO.output(red_pin, GPIO.LOW)
+    sleep(.25)
+    GPIO.output(red_pin, GPIO.HIGH)
+    sleep(.25)
+    GPIO.output(red_pin, GPIO.LOW)
+    sleep(.25)
+    GPIO.output(red_pin, GPIO.HIGH)
+    sleep(.25)
+    GPIO.output(red_pin, GPIO.LOW)
+    sleep(.25)
+    GPIO.output(red_pin, GPIO.HIGH)
+    
+    # Turn both lights on
+    GPIO.output(red_pin, GPIO.LOW)
+    GPIO.output(green_pin, GPIO.LOW)
+
+# Prompt for keyboard input (RFID tag #)
+def await_scan():
+
+    scan = input()
+    
+    validation = validate_scan(scan)
+    
+    # If scan is validated, insert sucessful entry to security log and fire unlock command
+    if validation[0] == True:
+        
+        insert_sql = "INSERT INTO back_office.sec_lock_log (lock_name, scan_value, empno, first_name, last_name, perm_granted, timestamp) VALUES (%s, %s, %s, %s, %s, %s, NOW());"
+        insert_values = (lock_name, scan, validation[1], validation[2], validation[3], 1)
+    
+        cursor.execute(insert_sql, insert_values)
+        
+        connection.commit()
+        
+        unlock()
+     
+    # Else, insert unsucessful entry and fire denial command
+    else:
+        
+        insert_sql = "INSERT INTO back_office.sec_lock_log (lock_name, scan_value, perm_granted, timestamp) VALUES (%s, %s, %s, NOW());"
+        insert_values = (lock_name, scan, 0)
+    
+        cursor.execute(insert_sql, insert_values)
+        
+        connection.commit()
+        
+        denial()
+    
+
+# Query database for employee record with provided scan value
+def validate_scan(scan):
+    
+    # Set scan value as variable for SQL statement (tuple)
+    t = (scan, )
+    
+    sql.execute("SELECT empno, first_name, last_name FROM back_office.hr_employees WHERE tag_no = %s AND active = 'yes' LIMIT 1;", t)
+    
+    result = sql.fetchall()
+    
+    # Count matching results (0 or 1)
+    row_count = sql.rowcount
+    
+    # If a valid employee record is found, pass a "true" array along with identification data
+    if row_count == 1:
+        
+        for row in result:
+        
+            empno = row[0]
+            first_name = row[1]
+            last_name = row[2]
+            
+            validation_array = [True, empno, first_name, last_name]
+            
+    # Else, return a "false" array with nothing else
+    else:
+        
+        validation_array = [False]
+    
+    return validation_array
+    
+##### Main #####
+while True:
+    
+    await_scan()

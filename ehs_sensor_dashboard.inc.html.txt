@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>EHS Sensor Dashboard</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+	<link rel="shortcut icon" href="/assets/images/cabdoor-2015-logo-white-2020x1219.png" type="image/x-icon">
+	<meta name="description" content="">
+	
+<?php include_once($_SERVER['DOCUMENT_ROOT'] . "/includes/headcode_2019.inc.html.php"); ?>
+
+
+</head>
+
+<body>
+
+<?php include_once($_SERVER['DOCUMENT_ROOT'] . "/includes/bo_header_pipeline2019.inc.html.php"); ?>
+<?php include_once($_SERVER['DOCUMENT_ROOT'] . "/includes/sidebar_menu.inc.html.php"); ?>
+
+<div id="main_content" class="container">
+	<div class="media-container-row">
+		
+		<div class="col-sm-12 hr_header d-flex justify-content-between align-items-center">
+			<button type="button" id="sidebarCollapse" class="btn btn-info">
+				<i class="fas fa-align-left"></i>
+			</button>
+			<div class="col-sm-4 d-flex justify-content-around">
+				<span class="fas fa-biohazard fa-2x" style="color: rgb(255, 255, 255);"></span>
+				<h3>Sensor Dashboard</h3>
+			</div>
+		</div>
+	</div>
+
+<!-- Title and Breadcrumb Links -->
+	<div class="media-container-row" id="" style="margin-top: 25px;">
+		<div class="col-sm-12 d-flex justify-content-between">
+			<h1 class="page_title">Sensor Dashboard<br></h1>
+			
+			<div>
+				<p>Logged in as <?php echo $_SESSION['user_id']; ?></p>
+			</div>
+			<div>
+				<p>
+					<a href="/index.php?action=home">Pipeline Home</a> >
+                    <a href="/admin/index.php?action=dashboard">Admin Dashboard</a> >
+                    <a href="/ehs/index.php?action=dashboard">EHS Dashboard</a> >
+                    Sensor Dashboard
+				</p>
+			</div>
+		</div>
+	</div>
+
+    <!-- Data Display -->
+
+    <!--<div>
+        <form class="data_form">
+            <div class="form-group">
+                <label for="building_number">Building #</label>
+                <select class="form-control" id="building_number">
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start_date">Start Date</label>
+                <input class="form-control" type="date" name="start_date" value="2022-12-04" required="">
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date</label>
+                <input class="form-control" type="date" name="end_date" value="2022-12-04" required="">
+            </div>
+            <div class="form-group">
+                <label for="zone">Zone</label>
+                <select class="form-control" id="zone">
+                    <option>Spray Booth 134 Center</option>
+                    <option>Paint Mix Area</option>
+                    <option>Stain Booth 189 East Side</option>
+                    <option>Superfici Infeed Control Panel</option>
+                    <option>Off Gassing Room East Wall</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="gauge">Gauge</label>
+                <select class="form-control" id="gauge">
+                    <option>Formaldehyde</option>
+                    <option>Heat Index</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+        </form>
+    </div>-->
+
+    <div class="row">
+
+
+
+        <div class="tile col-3">
+            <div class="card card-header">
+                <h4>Get Sensor Data</h4>
+            </div>
+            <div class="card card-body">
+                <form method="post" action="/ehs/index.php">
+                    <div class="form-group">
+                        <label for="zones">Use CTRL or SHIFT to select one ore more sensors:</label>
+                        <select class="form-control" name="zones[]" multiple required>
+                            <?php echo $sensor_option_block; ?>
+                        </select>
+                        <div class="form-group">
+                            <label for="start_date">Start Date</label>
+                            <input class="form-control" type="date" name="start_date" required max="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">End Date</label>
+                            <input class="form-control" type="date" name="end_date" required max="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                        <input type="hidden" name="action" value="get_sensor_data">
+                    </div>
+                    <div class="row justify-content-between">
+                    <button class="btn btn-primary" type="submit">Get Data</button>
+                </form>
+                <?php echo $download_csv; ?>
+            </div>
+            </div>
+        </div>
+
+    </div>
+    <div hidden>
+        <?php echo $sensor_table_html; ?>
+    </div>
+
+
+
+    <!--
+
+    <form method="post" action="/bo_manuf/scan_sys/index.php">
+        <div class="form-group">
+            <label for="cell_id">Select Cell</label>
+            <select class="form-control" id="cell_id" name="cell_id">
+            <?php //echo $cells_option_block; ?>
+            </select>
+        </div>
+
+
+
+    </form>
+
+
+
+    <script>
+        function get_zones_function() {
+            var get_zones = document.getElementById("zones").value;
+            document.getElementById("selected_zones").innerHTML = "Selected Zones are: " + get_zones;
+            // alert(get_zones)
+        }
+
+    </script>
+
+    -->
+
+    <!-- Legend -->
+
+    <div class="row legend_row"><h1>Legend</h1></div>
+    <div class="row gauge_title">
+        <div class="col">Formaldehyde</div>
+        <div class="col">Temperature</div>
+        <div class="col">Humidity</div>
+        <div class="col">Heat Index</div>
+    </div>
+    <div class="row limit_row">
+        <div class="col f_limit_0">Less than 0.75 PPM- Acceptable limits</div>
+        <div class="col t_limit_0">Less than 80 °F- Acceptable limits</div>
+        <div class="col rh_limit_0"></div>
+        <div class="col hi_limit_0">Less than 81 °F- Acceptable limits</div>
+    </div>
+    <div class="row limit_row">
+        <div class="col f_limit_1">0.75 PPM- Continuous 8hr exposure limit</div>
+        <div class="col t_limit_1">85 °F- Provide plenty of water for employees</div>
+        <div class="col rh_limit_1"></div>
+        <div class="col hi_limit_1">81-90 °F- Fatigue possible</div>
+    </div>
+    <div class="row limit_row">
+        <div class="col f_limit_2"></div>
+        <div class="col t_limit_2">91 °F- Implement precautions & heighten awareness</div>
+        <div class="col rh_limit_2"></div>
+        <div class="col hi_limit_2">91-103 °F- Cramps & heat exhaustion possible</div>
+    </div>
+    <div class="row limit_row">
+        <div class="col f_limit_3"></div>
+        <div class="col t_limit_3">103+ °F- Additional precautions to protect employees</div>
+        <div class="col rh_limit_3"></div>
+        <div class="col hi_limit_3">103+ °F- Heatstroke possible / prolonged exposure</div>
+    </div>
+
+<!--Gauges-->
+
+<h2 class="building_heading">Building #2</h2>
+<h4 id="spray_booth_134_center" class="zone_title"></h4>
+<hr>
+<div class="row gauge_row" id="spray_booth_134_center_row">
+    <div class="gauge" id="spray_booth_134_center_formaldehyde">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_spray_booth_134_center_formaldehyde"></div>
+            <div class="gauge_cover" id="cover_spray_booth_134_center_formaldehyde"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge" id="spray_booth_134_center_temperature">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_spray_booth_134_center_temperature"></div>
+            <div class="gauge_cover"id="cover_spray_booth_134_center_temperature"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="spray_booth_134_center_humidity">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_spray_booth_134_center_humidity"></div>
+            <div class="gauge_cover"id="cover_spray_booth_134_center_humidity"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="spray_booth_134_center_heat_index">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_spray_booth_134_center_heat_index"></div>
+            <div class="gauge_cover"id="cover_spray_booth_134_center_heat_index"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+</div>
+<h4 id="paint_mix_area" class="zone_title"></h4>
+<hr>
+<div class="row gauge_row" id="paint_mix_area_row">
+    <div class="gauge" id="paint_mix_area_formaldehyde">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_paint_mix_area_formaldehyde"></div>
+            <div class="gauge_cover" id="cover_paint_mix_area_formaldehyde"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="paint_mix_area_temperature">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_paint_mix_area_temperature"></div>
+            <div class="gauge_cover"id="cover_paint_mix_area_temperature"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="paint_mix_area_humidity">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_paint_mix_area_humidity"></div>
+            <div class="gauge_cover"id="cover_paint_mix_area_humidity"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="paint_mix_area_heat_index">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_paint_mix_area_heat_index"></div>
+            <div class="gauge_cover"id="cover_paint_mix_area_heat_index"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+</div>
+<h4 id="stain_booth_189_east_side" class="zone_title"></h4>
+<hr>
+<div class="row gauge_row" id="stain_booth_189_east_side_row">
+    <div class="gauge" id="stain_booth_189_east_side_formaldehyde">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_stain_booth_189_east_side_formaldehyde"></div>
+            <div class="gauge_cover" id="cover_stain_booth_189_east_side_formaldehyde"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="stain_booth_189_east_side_temperature">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_stain_booth_189_east_side_temperature"></div>
+            <div class="gauge_cover"id="cover_stain_booth_189_east_side_temperature"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="stain_booth_189_east_side_humidity">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_stain_booth_189_east_side_humidity"></div>
+            <div class="gauge_cover"id="cover_stain_booth_189_east_side_humidity"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="stain_booth_189_east_side_heat_index">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_stain_booth_189_east_side_heat_index"></div>
+            <div class="gauge_cover"id="cover_stain_booth_189_east_side_heat_index"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+</div>
+<h4 id="superfici_infeed_control_panel" class="zone_title"></h4>
+<hr>
+<div class="row gauge_row" id="superfici_infeed_control_panel_row">
+    <div class="gauge" id="superfici_infeed_control_panel_formaldehyde">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_superfici_infeed_control_panel_formaldehyde"></div>
+            <div class="gauge_cover" id="cover_superfici_infeed_control_panel_formaldehyde"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="superfici_infeed_control_panel_temperature">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_superfici_infeed_control_panel_temperature"></div>
+            <div class="gauge_cover"id="cover_superfici_infeed_control_panel_temperature"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="superfici_infeed_control_panel_humidity">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_superfici_infeed_control_panel_humidity"></div>
+            <div class="gauge_cover"id="cover_superfici_infeed_control_panel_humidity"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="superfici_infeed_control_panel_heat_index">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_superfici_infeed_control_panel_heat_index"></div>
+            <div class="gauge_cover"id="cover_superfici_infeed_control_panel_heat_index"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+</div>
+<h4 id="off_gassing_room_east_wall" class="zone_title"></h4>
+<hr>
+<div class="row gauge_row" id="off_gassing_room_east_wall_row">
+    <div class="gauge" id="off_gassing_room_east_wall_formaldehyde">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_off_gassing_room_east_wall_formaldehyde"></div>
+            <div class="gauge_cover" id="cover_off_gassing_room_east_wall_formaldehyde"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="off_gassing_room_east_wall_temperature">
+        <div class="gauge_body">
+            <div class="gauge_fill" id="fill_off_gassing_room_east_wall_temperature"></div>
+            <div class="gauge_cover"id="cover_off_gassing_room_east_wall_temperature"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="off_gassing_room_east_wall_humidity">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_off_gassing_room_east_wall_humidity"></div>
+            <div class="gauge_cover"id="cover_off_gassing_room_east_wall_humidity"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+    <div class="gauge"id="off_gassing_room_east_wall_heat_index">
+        <div class="gauge_body">
+            <div class="gauge_fill"id="fill_off_gassing_room_east_wall_heat_index"></div>
+            <div class="gauge_cover"id="cover_off_gassing_room_east_wall_heat_index"></div>
+            <div class="gauge_right1_tic"></div>
+            <div class="gauge_right2_tic"></div>
+            <div class="gauge_right3_tic"></div>
+            <div class="gauge_left1_tic"></div>
+            <div class="gauge_left2_tic"></div>
+            <div class="gauge_left3_tic"></div>
+            <div class="gauge_center_tic"></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<?php include_once($_SERVER['DOCUMENT_ROOT'] . "/includes/bo_footer_pipeline2019.inc.html.php"); ?>
+
+<?php include_once($_SERVER['DOCUMENT_ROOT'] . "/includes/js_includes.inc.html.php"); ?>
+
+<script>
+    $(document).ready(function()
+    {
+        const zones = [
+            "spray_booth_134_center",
+            "paint_mix_area",
+            "stain_booth_189_east_side",
+            "superfici_infeed_control_panel",
+            "off_gassing_room_east_wall"
+        ];
+
+        function update_gauges(zones) {
+
+            $.ajax(
+                {
+                    type: "POST",
+                    url: '/ehs/ajax/get_ehs_sensor_data.php',
+                    dataType: 'json',
+                    cache: false,
+                    data:
+                        {
+                            zones: zones
+                        },
+                    success: function(data){
+
+                        data.forEach(function (array){
+
+                            // Zone Display
+
+                            var zone_display = array["zone_display"];
+                            var reading_time = array["reading_time"];
+                            var z_display_r_time_string = zone_display + "- Last Reading- " + reading_time;
+                            var current_time = new Date().getTime(); // Gets the current time in milliseconds
+                            // Takes the reading time and converts it to javascript format
+                            var t = (reading_time).split(/[- :]/);
+                            var d = new Date(Date.UTC(t[0], t[1]-1, t[2], t[3], t[4], t[5])).getTime();
+                            // Converts the times from milliseconds to seconds
+                            var ct = Math.round(current_time / 60000);
+                            var rt = Math.round(d / 60000);
+                            var difference_time = ct - rt; // This shows the difference in seconds
+                            var not_working = ' -This Sensor Not Working'
+                            if (difference_time > 1200) {
+                                $("#" + array["zone"]).css('color','red');
+                                $("#" + array["zone"] + '_row').css('background-color','red');
+                                $("#" + array["zone"] + '_row').css('font-size','32px');
+                                $("#" + array["zone"] + '_row').css('font-weight','bold');
+                                $("#" + array["zone"] + '_row').html(zone_display + not_working);
+                            }
+                            else $("#" + array["zone"]).html(z_display_r_time_string);
+
+                            // Formaldehyde
+
+                            var value = array["calc_chem_reading"];
+                            var min = 0;
+                            var max = 50;
+                            var perc = value/(max-min);
+                            var disp_value = (value/1000).toFixed(4); // Converts PPB to PPM
+                            var disp_string = (disp_value) + ' PPM'
+                            $('#fill_' + array["zone"] + '_formaldehyde').css('transform', 'rotate(' + perc + 'turn)');
+                            if (disp_value >= 0.50) {
+                                $('#fill_' + array["zone"] + '_formaldehyde').css('background','orange');
+                            } else if (disp_value >= 0.75) {
+                                $('#fill_' + array["zone"] + '_formaldehyde').css('background','red');
+                            }
+                            $('#cover_' + array["zone"] + '_formaldehyde').html(disp_string);
+
+                            // Temperature
+
+                            var value = array["temperature"];
+                            var min = 0;
+                            var max = 100;
+                            var perc = value/(max-min);
+                            var disp_value = Math.round((value*1.8)+32) // Converts celsius to fahrenheit
+                            var disp_string = (disp_value) + " °F";
+                            var zone_display = array["zone_display"];
+                            $('#fill_' + array["zone"] + '_temperature').css('transform', 'rotate(' + perc + 'turn)');
+                            if (disp_value >= 85) {
+                                $('#fill_' + array["zone"] + '_temperature').css('background','orange');
+                            }else if (disp_value >= 91) {
+                                $('#fill_' + array["zone"] + '_temperature').css('background','#FF8C00');
+                            }else if (disp_value >= 103) {
+                                $('#fill_' + array["zone"] + '_temperature').css('background','red');
+                            }
+                            $('#cover_' + array["zone"] + '_temperature').html(disp_string);
+
+                            // Humidity
+
+                            var value = array["humidity"];
+                            var min = 0;
+                            var max = 400;
+                            var perc = value/(max-min);
+                            var disp_value = Math.round(value) + "% RH";
+                            var zone_display = array["zone_display"];
+                            $('#fill_' + array["zone"] + '_humidity').css('transform', 'rotate(' + perc + 'turn)');
+                            $('#cover_' + array["zone"] + '_humidity').html(disp_value);
+
+                            // Heat Index
+
+                            var hi_adj = array["heat_index"];
+                            var hi_adj = Math.round(hi_adj);
+                            var min = 0;
+                            var max = 200;
+                            var perc = value/(max-min);
+                            var zone_display = array["zone_display"];
+                            var hi_adj_string = "HI " + (hi_adj) + " °F"
+                            $('#fill_' + array["zone"] + '_heat_index').css('transform', 'rotate(' + perc + 'turn)');
+                            if (hi_adj <= 80) {
+                                $('#fill_' + array["zone"] + '_heat_index').css('background', '#009578');
+                            } else if (hi_adj >= 81 && hi_adj < 91) {
+                                $('#fill_' + array["zone"] + '_heat_index').css('background', 'orange');
+                            } else if (hi_adj >= 91 && hi_adj < 104) {
+                                $('#fill_' + array["zone"] + '_heat_index').css('background', '#FF8C00');
+                            } else {
+                                $('#fill_' + array["zone"] + '_heat_index').css('background', 'red');
+                            }
+                            $('#cover_' + array["zone"] + '_heat_index').html(hi_adj_string);
+                        })
+                    }
+                });
+        }
+        setInterval(update_gauges, 30000, zones);
+        update_gauges(zones);
+    });
+</script>
+</body>
+</html>
